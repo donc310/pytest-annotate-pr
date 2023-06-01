@@ -23,14 +23,13 @@ def create_single_annotation(error, file_path):
     start_line = error['start_line']
     end_line = error['end_line']
     message = _get_annotation_message(start_line, end_line)
-    annotation = dict(
+    return dict(
         path=file_path,
         start_line=start_line,
         end_line=end_line,
         annotation_level='warning',
         message=message,
     )
-    return annotation
 
 
 class CheckRun:
@@ -67,30 +66,29 @@ class CheckRun:
                 if len(self.annotations) == 50:
                     return
 
-    def get_summary(self)->str:
+    def get_summary(self) -> str:
         number_of_annotations = len(self.annotations)
         total_coverage_files = self.coverage_output["files"].keys()
-        missing_coverage_file_count = sum([True if len(self.coverage_output["files"][file_report]["missing_lines"])
-                                           else False for file_report in total_coverage_files])
+        missing_coverage_file_count = sum(
+            bool(len(self.coverage_output["files"][file_report]["missing_lines"]))
+            for file_report in total_coverage_files
+        )
         missing_ranges_count = number_of_annotations if number_of_annotations < 50 else "50+"
-        summary = f"""
+        return f"""
         Coverage Report:
         Total files : {len(total_coverage_files)}
         Files with missing lines : {missing_coverage_file_count}
         Missing coverage line ranges : {missing_ranges_count}
         """
-        return summary
 
     def get_conclusion(self):
-        if len(self.annotations) == 0:
-            return 'success'
-        return 'failure'
+        return 'success' if len(self.annotations) == 0 else 'failure'
 
     def get_payload(self):
         summary = self.get_summary()
         conclusion = self.get_conclusion()
 
-        payload = {
+        return {
             'name': 'pytest-coverage',
             'head_sha': self.head_sha,
             'status': 'completed',
@@ -103,7 +101,6 @@ class CheckRun:
                 'annotations': self.annotations,
             },
         }
-        return payload
 
     def create(self):
         self.create_annotations()
